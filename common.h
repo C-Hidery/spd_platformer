@@ -267,3 +267,4 @@ void set_active(spdio_t *io, char *arg);
 void DEG_LOG(auto type, const char* format, ...);
 partition_t* partition_list_d(spdio_t* io, const char* fn);
 int set_bootloader_status(spdio_t* io,int status);
+void add_partition(spdio_t* io, const char* name, long long size);

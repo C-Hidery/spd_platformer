@@ -136,6 +136,9 @@ void print_help() {
 		"\t\tReads the chip UID (FDL2 stage only).\n"
 		"\t->transcode {0,1}\n"
 		"\t\tEnable or disable transcode mode (FDL2 stage only).\n"
+		"\t->add_part [PARTITION NAME]\n"
+		"\t\tAdd a partition to the partition table (FDL2 stage only).\n"
+		"\t\t(Only compatibility-method mode)"
 		"Notice:\n"
 		"\t1.The compatibility way to get part table sometimes can not get all partitions on your device\n"
 	);
@@ -959,33 +962,64 @@ int main(int argc, char** argv) {
 			}
 			else if (!strcmp(name, "all")) {
 				if (gpt_failed == 1) io->ptable = partition_list(io, fn_partlist, &io->part_count);
-				if (!io->part_count) { DEG_LOG(W,"Partition table not available\n"); argc -= 2; argv += 2; continue; }
-				dump_partition(io, "splloader", 0, 256 * 1024, "splloader.bin", blk_size ? blk_size : DEFAULT_BLK_SIZE);
-				for (i = 0; i < io->part_count; i++) {
-					char dfile[40];
-					if (!strncmp((*(io->ptable + i)).name, "blackbox", 8)) continue;
-					else if (!strncmp((*(io->ptable + i)).name, "cache", 5)) continue;
-					else if (!strncmp((*(io->ptable + i)).name, "userdata", 8)) continue;
-					snprintf(dfile, sizeof(dfile), "%s.bin", (*(io->ptable + i)).name);
-					dump_partition(io, (*(io->ptable + i)).name, 0, (*(io->ptable + i)).size, dfile, blk_size ? blk_size : DEFAULT_BLK_SIZE);
+				if (!isCMethod) {
+					if (!io->part_count) { DEG_LOG(W, "Partition table not available\n"); argc -= 2; argv += 2; continue; }
+					dump_partition(io, "splloader", 0, 256 * 1024, "splloader.bin", blk_size ? blk_size : DEFAULT_BLK_SIZE);
+					for (i = 0; i < io->part_count; i++) {
+						char dfile[40];
+						if (!strncmp((*(io->ptable + i)).name, "blackbox", 8)) continue;
+						else if (!strncmp((*(io->ptable + i)).name, "cache", 5)) continue;
+						else if (!strncmp((*(io->ptable + i)).name, "userdata", 8)) continue;
+						snprintf(dfile, sizeof(dfile), "%s.bin", (*(io->ptable + i)).name);
+						dump_partition(io, (*(io->ptable + i)).name, 0, (*(io->ptable + i)).size, dfile, blk_size ? blk_size : DEFAULT_BLK_SIZE);
+					}
+				}
+				else {
+					if(!io->part_count_c) { DEG_LOG(W, "Partition table not available\n"); argc -= 2; argv += 2; continue; }
+					dump_partition(io, "splloader", 0, 256 * 1024, "splloader.bin", blk_size ? blk_size : DEFAULT_BLK_SIZE);
+					for (i = 0; i < io->part_count_c; i++) {
+						char dfile[40];
+						if (!strncmp((*(io->Cptable + i)).name, "blackbox", 8)) continue;
+						else if (!strncmp((*(io->Cptable + i)).name, "cache", 5)) continue;
+						else if (!strncmp((*(io->Cptable + i)).name, "userdata", 8)) continue;
+						snprintf(dfile, sizeof(dfile), "%s.bin", (*(io->Cptable + i)).name);
+						dump_partition(io, (*(io->Cptable + i)).name, 0, (*(io->Cptable + i)).size, dfile, blk_size ? blk_size : DEFAULT_BLK_SIZE);
+					}
 				}
 				argc -= 2; argv += 2;
 				continue;
 			}
 			else if (!strcmp(name, "all_lite")) {
 				if (gpt_failed == 1) io->ptable = partition_list(io, fn_partlist, &io->part_count);
-				if (!io->part_count) { DEG_LOG(E,"Partition table not available\n"); argc -= 2; argv += 2; continue; }
-				dump_partition(io, "splloader", 0, 256 * 1024, "splloader.bin", blk_size ? blk_size : DEFAULT_BLK_SIZE);
-				for (i = 0; i < io->part_count; i++) {
-					char dfile[40];
-					size_t namelen = strlen((*(io->ptable + i)).name);
-					if (!strncmp((*(io->ptable + i)).name, "blackbox", 8)) continue;
-					else if (!strncmp((*(io->ptable + i)).name, "cache", 5)) continue;
-					else if (!strncmp((*(io->ptable + i)).name, "userdata", 8)) continue;
-					if (selected_ab == 1 && namelen > 2 && 0 == strcmp((*(io->ptable + i)).name + namelen - 2, "_b")) continue;
-					else if (selected_ab == 2 && namelen > 2 && 0 == strcmp((*(io->ptable + i)).name + namelen - 2, "_a")) continue;
-					snprintf(dfile, sizeof(dfile), "%s.bin", (*(io->ptable + i)).name);
-					dump_partition(io, (*(io->ptable + i)).name, 0, (*(io->ptable + i)).size, dfile, blk_size ? blk_size : DEFAULT_BLK_SIZE);
+				if (!isCMethod) {
+					if (!io->part_count) { DEG_LOG(E, "Partition table not available\n"); argc -= 2; argv += 2; continue; }
+					dump_partition(io, "splloader", 0, 256 * 1024, "splloader.bin", blk_size ? blk_size : DEFAULT_BLK_SIZE);
+					for (i = 0; i < io->part_count; i++) {
+						char dfile[40];
+						size_t namelen = strlen((*(io->ptable + i)).name);
+						if (!strncmp((*(io->ptable + i)).name, "blackbox", 8)) continue;
+						else if (!strncmp((*(io->ptable + i)).name, "cache", 5)) continue;
+						else if (!strncmp((*(io->ptable + i)).name, "userdata", 8)) continue;
+						if (selected_ab == 1 && namelen > 2 && 0 == strcmp((*(io->ptable + i)).name + namelen - 2, "_b")) continue;
+						else if (selected_ab == 2 && namelen > 2 && 0 == strcmp((*(io->ptable + i)).name + namelen - 2, "_a")) continue;
+						snprintf(dfile, sizeof(dfile), "%s.bin", (*(io->ptable + i)).name);
+						dump_partition(io, (*(io->ptable + i)).name, 0, (*(io->ptable + i)).size, dfile, blk_size ? blk_size : DEFAULT_BLK_SIZE);
+					}
+				}
+				else {
+					if(!io->part_count_c) { DEG_LOG(E, "Partition table not available\n"); argc -= 2; argv += 2; continue; }
+					dump_partition(io, "splloader", 0, 256 * 1024, "splloader.bin", blk_size ? blk_size : DEFAULT_BLK_SIZE);
+					for (i = 0; i < io->part_count_c; i++) {
+						char dfile[40];
+						size_t namelen = strlen((*(io->Cptable + i)).name);
+						if (!strncmp((*(io->Cptable + i)).name, "blackbox", 8)) continue;
+						else if (!strncmp((*(io->Cptable + i)).name, "cache", 5)) continue;
+						else if (!strncmp((*(io->Cptable + i)).name, "userdata", 8)) continue;
+						if (selected_ab == 1 && namelen > 2 && 0 == strcmp((*(io->Cptable + i)).name + namelen - 2, "_b")) continue;
+						else if (selected_ab == 2 && namelen > 2 && 0 == strcmp((*(io->Cptable + i)).name + namelen - 2, "_a")) continue;
+						snprintf(dfile, sizeof(dfile), "%s.bin", (*(io->Cptable + i)).name);
+						dump_partition(io, (*(io->Cptable + i)).name, 0, (*(io->Cptable + i)).size, dfile, blk_size ? blk_size : DEFAULT_BLK_SIZE);
+					}
 				}
 				argc -= 2; argv += 2;
 				continue;
@@ -1058,6 +1092,10 @@ int main(int argc, char** argv) {
 						fprintf(fo, "    <Partition id=\"%s\" size=\"", (*(io->Cptable + i)).name);
 						if (i + 1 == io->part_count_c) fprintf(fo, "0x%x\"/>\n", ~0);
 						else fprintf(fo, "%lld\"/>\n", ((*(io->Cptable + i)).size >> 20));
+					}
+					if (check_partition(io, "userdata", 0)) {
+						fprintf(fo, "    <Partition id=\"%s\" size=\"", "userdata");
+						fprintf(fo, "0x%x\"/>\n", ~0);
 					}
 					fprintf(fo, "</Partitions>");
 					fclose(fo);
@@ -1239,6 +1277,25 @@ int main(int argc, char** argv) {
 			argc -= 2; argv += 2;
 
 		}
+		else if (!strcmp(str2[1], "add_part")) {
+			if (isCMethod) {
+				const char* name = str2[2];
+				int n = io->part_count_c + 1;
+				if (check_partition(io, name, 0)) {
+					long long size = check_partition(io, name, 1);
+					if (!size) { DEG_LOG(E, "Can not get partition size"); argc -= 2; argv += 2; continue; }
+					else {
+						add_partition(io, name, size);
+					}
+				}
+				else {
+					DEG_LOG(E, "Partition does not exist");
+				}
+			}
+			else {
+				DEG_LOG(E,"`add_part` command only supported in compatibility-method mode.");
+			}
+		}
 		else if (!strcmp(str2[1], "p") || !strcmp(str2[1], "print")) {
 			if (io->part_count) {
 				DBG_LOG("  0 %36s     256KB\n", "splloader");
@@ -1251,6 +1308,8 @@ int main(int argc, char** argv) {
 				for (i = 0; i < io->part_count_c; i++) {
 					DBG_LOG("%3d %36s %7lldMB\n", i + 1, (*(io->Cptable + i)).name, ((*(io->Cptable + i)).size >> 20));
 				}
+				long long k = check_partition(io, "userdata", 1);
+				DBG_LOG("%3d %36s %7lldMB\n", io->part_count_c + 1, "userdata", k / 1024 / 1024);
 			}
 			
 			argc -= 1; argv += 1;

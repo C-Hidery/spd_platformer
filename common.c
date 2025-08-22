@@ -1312,11 +1312,6 @@ partition_t* partition_list_d(spdio_t* io, const char* fn) {
 	if (selected_ab < 0) select_ab(io);
 	int verbose = io->verbose;
 	io->verbose = 0;
-	if (strcmp(fn, "-")) {
-		fo = my_fopen(fn, "wb");
-		if (!fo) ERR_EXIT("fopen failed\n");
-		fprintf(fo, "<Partitions>\n");
-	}
 	DBG_LOG("  0 %36s  256KB\n", "splloader");
 	for (i = 0; i < CommonPartitionsCount && n < 128; ++i) {
 		const char* part = CommonPartitions[i];
@@ -1334,32 +1329,47 @@ partition_t* partition_list_d(spdio_t* io, const char* fn) {
 				n++;
 			}
 			if (part != "splloader" && part != "userdata") { size = size / 1024 / 1024; DBG_LOG("  %d %36s  %lldMB\n", n, part, size); }
-			if (fo && part != "splloader" && part != "userdata") {
-				fprintf(fo, "    <Partition id=\"%s\" size=\"", part);
-				fprintf(fo, "%lld\"/>\n", size);
-			}
+			
 		}
 	}
 	long long k = check_partition(io, "userdata", 1);
-	strncpy(ptable[n].name, "userdata", sizeof(ptable[n].name) - 1);
-	ptable[n].name[sizeof(ptable[n].name) - 1] = '\0'; // È·±£×Ö·û´®ÖÕÖ¹
-	ptable[n].size = k;
-	n++;
-	DBG_LOG("  %d %36s  %lldMB\n", n, "userdata", k / 1024 / 1024);
-	if (fo) {
-		fprintf(fo, "    <Partition id=\"%s\" size=\"", "userdata");
-		fprintf(fo, "0x%x\"/>\n", ~0);
-		fprintf(fo, "</Partitions>\n");
-		fclose(fo);
-	}
+	//strncpy(ptable[n].name, "userdata", sizeof(ptable[n].name) - 1);
+	//ptable[n].name[sizeof(ptable[n].name) - 1] = '\0'; // È·±£×Ö·û´®ÖÕÖ¹
+	//ptable[n].size = k;
+	//n++;
+	DBG_LOG("  %d %36s  %lldMB\n", n + 1, "userdata", k / 1024 / 1024);
 	io->verbose = verbose;
-	if (strcmp(fn, "-")) DEG_LOG(OP,"Tryed to save partition table to %s", fn);
-	DEG_LOG(I,"Total number of partitions: %d", n);
+	//if (strcmp(fn, "-")) DEG_LOG(OP,"Tryed to save partition table to %s", fn);
+	DEG_LOG(I,"Compatibility-method mode will not save partition table xml automatically.");
+	DEG_LOG(I, "You can get partition xml by `part_table` command manually.");
+	DEG_LOG(I,"Total number of partitions: %d", n + 1);
 	io->ptable = NULL;
 	io->part_count_c = n;
 	return ptable;
 }
-
+void add_partition(spdio_t* io, const char* name, long long size) {
+	partition_t* ptable = malloc(128 * sizeof(partition_t));
+	if (ptable == NULL) return NULL;
+	int k = io->part_count_c;
+	for (int i = 0; i < io->part_count_c; i++) {
+		strncpy(ptable[i].name, io->Cptable[i].name, sizeof(ptable[i].name) - 1);
+		ptable[i].name[sizeof(ptable[i].name) - 1] = '\0'; // È·±£×Ö·û´®ÖÕÖ¹
+		ptable[i].size = io->Cptable[i].size;
+	}
+	for (int i = 0; i < io->part_count_c; i++) {
+		if (strcmp(io->Cptable[i].name, name) == 0) {
+			DEG_LOG(W, "Partition %s already exists", name);
+			return;
+		}
+	}
+	strncpy(ptable[k].name, name, sizeof(ptable[k].name) - 1);
+	ptable[k].name[sizeof(ptable[k].name) - 1] = '\0'; // È·±£×Ö·û´®ÖÕÖ¹
+	ptable[k].size = size;
+	io->Cptable = ptable;
+	io->part_count_c++;
+	DEG_LOG(I,"Partition %s added.",name);
+	DEG_LOG(I, "You can get partition xml manually by `part_table` command.");
+}
 void repartition(spdio_t *io, const char *fn) {
 	uint8_t *buf = io->temp_buf;
 	int n = scan_xml_partitions(io, fn, buf, 0xffff);
