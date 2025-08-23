@@ -61,7 +61,7 @@ libusb_device **FindPort(int pid) {
 
 	usb_cnt = libusb_get_device_list(NULL, &devs);
 	if (usb_cnt < 0) {
-		DEG_LOG(e,"Get device list error");
+		DEG_LOG(E,"Get device list error");
 		return NULL;
 	}
 	for (int i = 0; i < usb_cnt; i++) {
@@ -69,13 +69,13 @@ libusb_device **FindPort(int pid) {
 		struct libusb_device_descriptor desc;
 		int r = libusb_get_device_descriptor(dev, &desc);
 		if (r < 0) {
-			DEG_LOG(e,"Failed to get device descriptor");
+			DEG_LOG(E,"Failed to get device descriptor");
 			continue;
 		}
 		if (desc.idVendor == 0x1782 && (pid == 0 || desc.idProduct == pid)) {
 			libusb_device **temp = (libusb_device **)realloc(ports, (count + 2) * sizeof(libusb_device *));
 			if (temp == NULL) {
-				DEG_LOG("Memory allocation failed.");
+				DEG_LOG(E,"Memory allocation failed.");
 				libusb_free_device_list(devs, 1);
 				free(ports);
 				ports = NULL;
@@ -529,7 +529,7 @@ int recv_read_data(spdio_t *io) {
 	if (err == LIBUSB_ERROR_NO_DEVICE)
 		ERR_EXIT("connection closed\n");
 	else if (err < 0) {
-		DEG_LOG(e,"usb_recv failed : %s", libusb_error_name(err)); return 0;
+		DEG_LOG(E,"usb_recv failed : %s", libusb_error_name(err)); return 0;
 	}
 #else
 	len = call_Read(io->handle, io->recv_buf, RECV_BUF_LEN, io->timeout);
@@ -1285,7 +1285,7 @@ partition_t *partition_list(spdio_t *io, const char *fn, int *part_count_ptr) {
 		}
 		*part_count_ptr = n;
 		DEG_LOG(W,"Unable to get standard gpt table");
-		DEG_LOG(i,"Sprd partition list packet saved to sprdpart.bin");
+		DEG_LOG(I,"Sprd partition list packet saved to sprdpart.bin");
 		gpt_failed = 0;
 	}
 	if (*part_count_ptr) {
@@ -1799,7 +1799,7 @@ uint64_t check_partition(spdio_t *io, const char *name, int need_size) {
 		}
 	}
 	if (end == 10) Da_Info.dwStorageType = 0x101;
-	DEG_LOG(i,"Select partition: %s, offset: 0x%llx", name, offset);
+	DEG_LOG(I,"Select partition: %s, offset: 0x%llx", name, offset);
 	encode_msg_nocpy(io, BSL_CMD_READ_END, 0);
 	send_and_check(io);
 	return offset;
@@ -2063,7 +2063,7 @@ void load_partitions(spdio_t *io, const char *path, unsigned step, int force_ab)
 	struct dirent *entry;
 
 	if ((dir = opendir(path)) == NULL || (entry = readdir(dir)) == NULL) {
-		DEG_LOG(e,"Failed to open directory.\n");
+		DEG_LOG(E,"Failed to open directory.\n");
 		return;
 	}
 	for (fn = entry->d_name; (entry = readdir(dir)); fn = entry->d_name) {
@@ -2709,7 +2709,7 @@ void *UsbThrdFunc(void *param) {
 	while (bListenLibusb) {
 		ret = libusb_handle_events(NULL);
 		if (ret < 0)
-			DEG_LOG(e,"libusb_handle_events() failed: %s", libusb_error_name(ret));
+			DEG_LOG(E,"libusb_handle_events() failed: %s", libusb_error_name(ret));
 	}
 	return NULL;
 }
@@ -2741,15 +2741,15 @@ void stopUsbEventHandle(void) {
 	libusb_hotplug_deregister_callback(NULL, gHotplugCbHandle);
 
 	int ret = pthread_join(gUsbEventThrd, NULL);
-	if (ret != 0) DEG_LOG(e,"Failed to join thread, error: %d", ret);
+	if (ret != 0) DEG_LOG(E,"Failed to join thread, error: %d", ret);
 }
 #else
 void startUsbEventHandle(void) {
-	DEG_LOG(i,"startUsbEventHandle() is not supported in MSVC. Please use MSYS2 if you need it.");
+	DEG_LOG(I,"startUsbEventHandle() is not supported in MSVC. Please use MSYS2 if you need it.");
 }
 
 void stopUsbEventHandle(void) {
-	DEG_LOG(i,"stopUsbEventHandle() is not supported in MSVC. Please use MSYS2 if you need it.");
+	DEG_LOG(I,"stopUsbEventHandle() is not supported in MSVC. Please use MSYS2 if you need it.");
 }
 #endif
 void ChangeMode(spdio_t *io, int ms, int bootmode, int at) {
@@ -2889,7 +2889,7 @@ void call_Initialize_libusb(spdio_t *io) {
 	io->endp_out = endpoints[1];
 	int ret = libusb_control_transfer(io->dev_handle, 0x21, 34, 0x601, 0, NULL, 0, io->timeout);
 	if (ret < 0) ERR_EXIT("libusb_control_transfer failed : %s\n", libusb_error_name(ret));
-	DEG_LOG(i,"libusb_control_transfer ok");
+	DEG_LOG(I,"libusb_control_transfer ok");
 	m_bOpened = 1;
 }
 #endif
