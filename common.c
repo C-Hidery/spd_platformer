@@ -100,7 +100,7 @@ void usleep(unsigned int us) {
 
 
 //Print message
-void DEG_LOG(auto type, const char* format, ...) {
+void DEG_LOG(int type, const char* format, ...) {
 	va_list args;
 	va_start(args, format); // 初始化可变参数列表
 

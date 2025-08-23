@@ -9,5 +9,5 @@ ifeq ($(LIBUSB), 1)
 LIBS += -lusb-1.0
 endif
 
-$(APPNAME): $(APPNAME).c common.c
+$(APPNAME): spd_main.c common.c
 	$(CC) -s $(CFLAGS) -o $@ $^ $(LIBS)
