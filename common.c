@@ -297,6 +297,7 @@ void spdio_free(spdio_t *io) {
 	destroyClass(io->handle);
 #endif
 	free(io->ptable);
+	free(io->Cptable);
 	free(io);
 }
 
