@@ -40,7 +40,7 @@ DWORD WINAPI ThrdFunc(LPVOID lpParam);
 #endif
 
 #if USE_LIBUSB
-#include <libusb-1.0\libusb.h>
+#include "Lib/libusb-1.0/libusb.h"
 #ifndef _MSC_VER
 #include <pthread.h>
 #include <unistd.h>
