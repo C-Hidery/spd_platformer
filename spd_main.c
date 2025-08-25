@@ -4,7 +4,7 @@
 //spd_dump By TomKing062
 //SPDX-License-Identifier: GPL-3.0-or-later
 //addon funcs by YC (SPRDClientCore-second-amendment)
-const char* Version = "[stable_20250726_0012]";
+const char* Version = "[1.1.2.0@_250726]";
 int bListenLibusb = -1;
 int gpt_failed = 1;
 int m_bOpened = 0;
@@ -139,8 +139,11 @@ void print_help() {
 		"\t->add_part [PARTITION NAME]\n"
 		"\t\tAdd a partition to the partition table (FDL2 stage only).\n"
 		"\t\t(Only compatibility-method mode)"
+		"\t->bootloader {0,1}\n"
+		"\t\tSet the bootloader status (FDL2 stage only).\n"
 		"Notice:\n"
 		"\t1.The compatibility way to get part table sometimes can not get all partitions on your device\n"
+		"\t2.Command `bootloader` : It is only supported on special FDL2 and requires trustos and sml partition files."
 	);
 	DBG_LOG(
 		"\nExit Commands\n"
@@ -151,16 +154,16 @@ void print_help() {
 	);
 }
 void ThrowExit() {
-	if (init_stage == -1) {
+	if (init_stage = -1) {
 		o_exception = "Can not init program functions";
 	}
-	else if (init_stage == 0) {
+	else if (init_stage = 0) {
 		o_exception = "Device connected with wrong mode";
 	}
 	else if (init_stage = 1) {
 		o_exception = "Failed to handshake";
 	}
-	else if (init_stage == 2) {
+	else if (init_stage = 2) {
 		o_exception = "Failed to get device info";
 	}
 	
