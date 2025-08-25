@@ -1093,10 +1093,10 @@ int main(int argc, char** argv) {
 					for (i = 0; i < c; i++) {
 						DBG_LOG("%3d %36s %7lldMB\n", i + 1, (*(io->Cptable + i)).name, ((*(io->Cptable + i)).size >> 20));
 						fprintf(fo, "    <Partition id=\"%s\" size=\"", (*(io->Cptable + i)).name);
-						if (i + 1 == io->part_count_c) fprintf(fo, "0x%x\"/>\n", ~0);
-						else fprintf(fo, "%lld\"/>\n", ((*(io->Cptable + i)).size >> 20));
+					    fprintf(fo, "%lld\"/>\n", ((*(io->Cptable + i)).size >> 20));
 					}
 					if (check_partition(io, "userdata", 0)) {
+						DBG_LOG("%3d %36s %7lldMB\n", i + 1, "userdata", check_partition(io,"userdata",1) / 1024 / 1024);
 						fprintf(fo, "    <Partition id=\"%s\" size=\"", "userdata");
 						fprintf(fo, "0x%x\"/>\n", ~0);
 					}
