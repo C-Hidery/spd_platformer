@@ -138,7 +138,7 @@ void print_help() {
 		"\t\tEnable or disable transcode mode (FDL2 stage only).\n"
 		"\t->add_part [PARTITION NAME]\n"
 		"\t\tAdd a partition to the partition table (FDL2 stage only).\n"
-		"\t\t(Only compatibility-method mode)"
+		"\t\t(Only compatibility-method mode)\n"
 		"\t->bootloader {0,1}\n"
 		"\t\tSet the bootloader status (FDL2 stage only).\n"
 		"Notice:\n"
