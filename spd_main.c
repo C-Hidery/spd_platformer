@@ -64,10 +64,13 @@ void print_help() {
 		"\t\tSupported baudrates are 57600, 115200, 230400, 460800, 921600, 1000000, 2000000, 3250000, and 4000000.\n"
 		"\t\t(While in u-boot/littlekernel source code, only 115200, 230400, 460800, and 921600 are listed.)\n"
 		"\t->exec_addr [BINARY FILE] [ADDR] \n\t\t(BROM stage only)\n"
-		"\t\tSends a binary file to the specified memory address to bypass the signature verification by BootRom for splloader/FDL1.\n"
+		"\t\tSend a binary file to the specified memory address to bypass the signature verification by BootRom for splloader/FDL1.\n"
 		"\t\tUsed for CVE-2022-38694.\n"
 		"\t->fdl [FILE PATH] [ADDR]\n"
-		"\t\tSends a file (splloader, FDL1, FDL2, sml, trustos, teecfg) to the specified memory address.\n"
+		"\t\tSend a file (splloader, FDL1, FDL2, sml, trustos, teecfg) to the specified memory address.\n"
+		"\t->send|send_no_enddata\n"
+		"\t\tSends a file to the device without executing it. The file path and address must be specified before using this command.\n"
+		"\t\t(send_no_enddata will not send end_data command after file transfer.)\n"
 		"\t->exec\n"
 		"\t\tExecutes a sent file in the FDL1 stage. Typically used with sml or FDL2 (also known as uboot/lk).\n"
 		"\t->path [SAVE PATH]\n"
@@ -105,7 +108,7 @@ void print_help() {
 		"\t->erase_all\n"
 		"\t\tErases all partitions. Use with caution!\n"
 		"\t->part_table [FILE PATH]\n"
-		"\t\tRead the partition table on emmc/ufs, not all FDL2 supports this command.\n"
+		"\t\tRead the partition table on emmc/ufs and save partition xml, not all FDL2 supports this command.\n"
 		"\t->repartition [PARTITION TABLE XML]\n"
 		"\t\tRepartitions based on partition list XML.\n"
 		"\t->p|print\n"
@@ -577,7 +580,7 @@ int main(int argc, char** argv) {
 			if (!strcmp(str2[1], "exec_addr2")) cve_v2 = 1;
 			argc -= 3, argv += 3;
 		}
-		else if (!strcmp(str2[1], "send_file") || !strcmp(str2[1],"send_no_enddata")) {
+		else if (!strcmp(str2[1], "send") || !strcmp(str2[1],"send_no_enddata")) {
 			const char* fn; uint32_t addr = 0; FILE* fi;
 			if (argcount <= 3) { DEG_LOG(W,"send/send_no_enddata FILE addr"); argc = 1; continue; }
 
