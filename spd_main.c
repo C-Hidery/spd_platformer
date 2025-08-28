@@ -34,6 +34,10 @@ char str1[(ARGC_MAX - 1) * ARGV_LEN];
 void print_help() {
 	//TODO
 	DBG_LOG("spd_platformer usage:\n"
+	"\nOne-line mode example:\n"
+	"\tspd_platformer --wait 300 fdl path/to/fdl fdl path/to/fdl exec read_part boot write_part boot boot.img reset\n"
+	"\nInteractive mode example:\n"
+	"\tspd_platformer --wait 300 fdl path/to/fdl fdl path/to/fdl exec\n"
 	"\nOptions\n"
 	"\t--wait [TIME(second)]\n"
 	"\t\tSpecifies the time to wait for the device to connect.\n"
@@ -123,7 +127,12 @@ void print_help() {
 		"\t\tSets the active slot on VAB devices.\n"
 		"\t->firstmode [MODE ID]\n"
 		"\t\tSets the mode the device will enter after reboot.\n"
-		"Advanced commands:\n"
+		"\t->add_part [PARTITION NAME]\n"
+		"\t\tAdd a partition to the partition table (FDL2 stage only).\n"
+		"\t\t(Only compatibility-method mode)\n"
+		"\t->bootloader {0,1}\n"
+		"\t\tSet the bootloader status (FDL2 stage only).\n"
+		"Debug commands:\n"
 		"\t->skip_confirm {0,1}\n"
 		"\t\tSkips all confirmation prompts(use with caution!)\n"
 		"\t->keep_charge\n"
@@ -139,11 +148,10 @@ void print_help() {
 		"\t\tReads the chip UID (FDL2 stage only).\n"
 		"\t->transcode {0,1}\n"
 		"\t\tEnable or disable transcode mode (FDL2 stage only).\n"
-		"\t->add_part [PARTITION NAME]\n"
-		"\t\tAdd a partition to the partition table (FDL2 stage only).\n"
-		"\t\t(Only compatibility-method mode)\n"
-		"\t->bootloader {0,1}\n"
-		"\t\tSet the bootloader status (FDL2 stage only).\n"
+		"\t->sendloop [ADDR]\n"
+		"\t\tSend [0, 0, 0, 0] packet to a specified address, then send addresses in a loop of [0, 0, 0, 0] packet to sequentially decrease by 8\n"
+		"\t->write_word\n"
+		"\t\tWrite a HEX number word to a specified address.\n"
 		"Notice:\n"
 		"\t1.The compatibility way to get part table sometimes can not get all partitions on your device\n"
 		"\t2.Command `bootloader` : It is only supported on special FDL2 and requires trustos and sml partition files."
@@ -211,13 +219,13 @@ int main(int argc, char** argv) {
 	call_Initialize(io->handle);
 #endif
 	sprintf(fn_partlist, "partition_%lld.xml", (long long)time(NULL));
-	printf("spd_platformer version 1.2.0.0\n");
+	printf("spd_platformer version 1.2.2.0\n");
 	printf("Copyright (C) 2025 Ryan Crepa\n");
 	printf("Core by TomKing062\n");
 #if _DEBUG
-	DBG_LOG("running:debug, core version:%s\n", Version);
+	DBG_LOG("version:debug, core version:%s\n", Version);
 #else
-	DBG_LOG("running:stable, core version:%s\n", Version);
+	DBG_LOG("version:stable, core version:%s\n", Version);
 #endif
 	int i = 1;
 	while (argc > 1) {
@@ -567,7 +575,30 @@ int main(int argc, char** argv) {
 			argcount++;
 		}
 		//parse args and interacting command
-		if (!strcmp(str2[1], "exec_addr")) {
+		if (!strcmp(str2[1], "sendloop")) {
+			uint32_t addr = 0;
+			if (argcount <= 2) { DBG_LOG("sendloop [ADDR]\n"); argc = 1; continue; }
+
+			uint8_t data[4] = { 0 };
+			addr = strtoul(str2[2], NULL, 0);
+			while (1) {
+				send_buf(io, addr, 0, 528, data, 4);
+				DBG_LOG("SEND 4 bytes to 0x%x\n", addr);
+				addr -= 8;
+			}
+			argc -= 2; argv += 2;
+		}
+		else if (!strcmp(str2[1], "write_word")) {
+			uint32_t addr, data;
+			if (argc <= 3) { DBG_LOG("write_word [ADDR] [VALUE](max is 0xFFFFFFFF)\n"); argc = 1; continue; }
+
+			addr = strtoul(str2[2], NULL, 0);
+			data = strtoul(str2[3], NULL, 0);
+			send_buf(io, addr, end_data, 528, (uint8_t*)&data, 4);
+			argc -= 3; argv += 3;
+
+		}
+		else if (!strcmp(str2[1], "exec_addr")) {
 			FILE* fi;
 			if (0 == fdl1_loaded && argcount > 2) {
 				exec_addr = strtoul(str2[3], NULL, 0);
