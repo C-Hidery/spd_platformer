@@ -598,7 +598,7 @@ int main(int argc, char** argv) {
 			argc -= 3; argv += 3;
 
 		}
-		else if (!strcmp(str2[1], "exec_addr")) {
+		else if (!memcmp(str2[1], "exec_addr",9)) {
 			FILE* fi;
 			if (0 == fdl1_loaded && argcount > 2) {
 				exec_addr = strtoul(str2[3], NULL, 0);
@@ -608,7 +608,7 @@ int main(int argc, char** argv) {
 				else fclose(fi);
 			}
 			DEG_LOG(I,"Current CVE address is 0x%x", exec_addr);
-			if (!strcmp(str2[1], "exec_addr2")) cve_v2 = 1;
+			if (!strncmp(str2[1], "exec_addr2",10)) cve_v2 = 1;
 			argc -= 3, argv += 3;
 		}
 		else if (!strcmp(str2[1], "send") || !strcmp(str2[1],"send_no_enddata")) {
