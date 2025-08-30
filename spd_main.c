@@ -467,6 +467,7 @@ int main(int argc, char** argv) {
 				DEG_LOG(OP, "Try to disable transcode 0x7D.");
 			}
 			fdl2_executed = 1;
+			device_stage = FDL2;
 			break;
 		}
 		
