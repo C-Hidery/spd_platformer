@@ -1,7 +1,11 @@
 # spd_platformer
 The modified version of tool 'spd_dump'
 
+spd_platformer is a maintenance release for spd_dump
+
 [spd_dump : spreadtrum_flash](https://github.com/TomKing062/spreadtrum_flash)
+
+---
 
 Run this before making on linux:
 
