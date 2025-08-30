@@ -331,9 +331,10 @@ int main(int argc, char** argv) {
 	}
 #endif
 #endif
+	init_stage = 0;
 	if (!m_bOpened) {
 		DBG_LOG("<waiting for connection,mode:dl,%ds>\n", wait / REOPEN_FREQ);
-		init_stage = 0;
+		
 		ThrowExit;
 		for (i = 0; ; i++) {
 #if USE_LIBUSB
@@ -455,9 +456,8 @@ int main(int argc, char** argv) {
 					if (!send_and_check(io)) DEG_LOG(OP, "Keep charge FDL1.");
 				}
 			}
-			else { DEG_LOG(OP, "BROM connected."); }
-			device_stage = BROM;
-			break;
+			else { DEG_LOG(OP, "BROM connected."); device_stage = BROM; break;}
+			
 		}
 		//FDL2 response:UNSUPPORTED
 		else if (ret == BSL_REP_UNSUPPORTED_COMMAND) {
@@ -469,8 +469,11 @@ int main(int argc, char** argv) {
 			fdl2_executed = 1;
 			break;
 		}
+		
 		//fail
 		else if (i == 4) {
+			init_stage = 1;
+			ThrowExit;
 			if (stage != -1) { ERR_EXIT("Failed to connect: %s, please reboot your phone by pressing POWER and VOLUME_UP for 7-10 seconds.\n", o_exception); }
 			else { encode_msg_nocpy(io, BSL_CMD_CONNECT, 0); stage++; i = -1; }
 		}
@@ -493,12 +496,12 @@ int main(int argc, char** argv) {
 		else if (device_stage == FDL2) DEG_LOG(I, "Device stage: FDL2/SPRD3");
 		else { ERR_EXIT("Failed to connect: %s, please reboot your phone by pressing POWER and VOLUME_UP for 7-10 seconds.\n", o_exception); }
 	}
-	else if (device_stage == SPRD4) {
+	else if (device_mode == SPRD4) {
 		if (device_stage == BROM) {
-			DEG_LOG(I, "Device stage: BROM/SPRD4");
+			DEG_LOG(I, "Device stage: BROM/SPRD3/4(AutoD)");
 		}
-		else if (device_stage == FDL1) DEG_LOG(I, "Device stage: FDL1/SPRD4");
-		else if (device_stage == FDL2) DEG_LOG(I, "Device stage: FDL2/SPRD4");
+		else if (device_stage == FDL1) DEG_LOG(I, "Device stage: FDL1/SPRD3/4(AutoD)");
+		else if (device_stage == FDL2) DEG_LOG(I, "Device stage: FDL2/SPRD3/4(AutoD)");
 		else {  ERR_EXIT("Failed to connect: %s, please reboot your phone by pressing POWER and VOLUME_UP for 7-10 seconds.\n",o_exception); }
 	}
 	else { ThrowExit; ERR_EXIT("Failed to connect: %s, please reboot your phone by pressing POWER and VOLUME_UP for 7-10 seconds.\n", o_exception); }
