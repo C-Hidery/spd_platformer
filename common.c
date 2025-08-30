@@ -272,7 +272,7 @@ spdio_t *spdio_init(int flags) {
 	io->temp_buf = p + 5;
 	io->untranscode_buf = p; p += 4 + 0x10000 + 4;
 	io->enc_buf = p;
-	io->timeout = 1000;
+	io->timeout = 3000;
 	memset(io->recv_buf, 0, 8);
 	return io;
 }
