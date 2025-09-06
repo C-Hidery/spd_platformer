@@ -41,15 +41,15 @@ termux-usb -e './spd_platformer --usb-fd' /dev/bus/usb/xxx/xxx
 
 ***修改的命令:***
 
-    part_table
+    part_table [文件地址]
 
 **等同于命令`partition_list`**
 
-    exec_addr [BINARY FILE] [ADDR]
+    exec_addr [镜像文件] [地址]
     
 **你需要同时提供文件路径和地址**
 
-    exec <ADDR>
+    exec <地址>
 
 **你需要在执行FDL1时提供FDL1的地址**
 
