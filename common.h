@@ -60,8 +60,9 @@ void usleep(unsigned int us);
 
 #define FLAGS_CRC16 1
 #define FLAGS_TRANSCODE 2
-char fn_partlist[40];
-char savepath[ARGV_LEN];
+extern char fn_partlist[40];
+extern char savepath[ARGV_LEN];
+
 #if _WIN32
 #define ERR_EXIT(...) \
 	do { fprintf(stderr, __VA_ARGS__); if (m_bOpened == 1) system("pause"); exit(1); } while (0)
@@ -202,7 +203,8 @@ typedef struct {
 	uint32_t crc32_le;
 } bootloader_control;
 #pragma pack()
-
+DA_INFO_T Da_Info;
+partition_t gPartInfo;
 #if USE_LIBUSB
 libusb_device **FindPort(int pid);
 void startUsbEventHandle(void);
@@ -217,8 +219,7 @@ void DestroyRecvThread(spdio_t *io);
 
 void print_string(FILE *f, const void *src, size_t n);
 void ChangeMode(spdio_t *io, int ms, int bootmode, int at);
-DA_INFO_T Da_Info;
-partition_t gPartInfo;
+
 enum msg_type{
 	I = 1,
 	W = 2,

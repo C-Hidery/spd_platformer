@@ -322,8 +322,8 @@ void find_endpoints(libusb_device_handle *dev_handle, int result[2]) {
 
 char fn_partlist[40] = { 0 };
 char savepath[ARGV_LEN] = { 0 };
-DA_INFO_T Da_Info;
-partition_t gPartInfo;
+//DA_INFO_T Da_Info;
+//partition_t gPartInfo;
 
 spdio_t *spdio_init(int flags) {
 	uint8_t *p; spdio_t *io;
