@@ -518,7 +518,7 @@ int set_bootloader_status(spdio_t* io,int status) {
 		encode_msg_nocpy(io, status ? YCC_CMD_LOCK_BOOTLOADER : YCC_CMD_UNLOCK_BOOTLOADER, 0);
 		send_msg(io);
 		recv_msg(io);
-		auto ret = recv_type(io);
+		unsigned int ret = recv_type(io);
 		if (ret == YCC_REP_SET_BOOTLOADER_SUCCESS) { DEG_LOG(I, "Bootloader status set successfully"); return 1; }
 		else { DEG_LOG(E, "Can not set bootloader status."); return 0;}
 	}
@@ -1383,7 +1383,7 @@ partition_t* partition_list_d(spdio_t* io, const char* fn) {
 	DBG_LOG("  0 %36s  256KB\n", "splloader");
 	for (i = 0; i < CommonPartitionsCount && n < 128; ++i) {
 		const char* part = CommonPartitions[i];
-		auto result = check_partition(io, part, 0);
+		long long result = check_partition(io, part, 0);
 		//exist
 		
 		if (result == 1) {
@@ -1417,7 +1417,6 @@ partition_t* partition_list_d(spdio_t* io, const char* fn) {
 }
 void add_partition(spdio_t* io, const char* name, long long size) {
 	partition_t* ptable = malloc(128 * sizeof(partition_t));
-	if (ptable == NULL) return NULL;
 	int k = io->part_count_c;
 	for (int i = 0; i < io->part_count_c; i++) {
 		strncpy(ptable[i].name, io->Cptable[i].name, sizeof(ptable[i].name) - 1);
