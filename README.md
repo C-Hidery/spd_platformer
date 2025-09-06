@@ -42,7 +42,7 @@ termux-usb -e './spd_platformer --usb-fd' /dev/bus/usb/xxx/xxx
 
 ***Modified commands:***
 
-    part_table
+    part_table [FILE PATH]
 
 **This command is equivalent to the `partition_list` command.**
 
