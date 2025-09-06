@@ -37,3 +37,19 @@ termux-usb -r /dev/bus/usb/xxx/xxx
 # Run
 termux-usb -e './spd_platformer --usb-fd' /dev/bus/usb/xxx/xxx
 ```
+
+---
+
+***Modified commands:***
+
+    part_table
+
+**This command is equivalent to the `partition_list` command.**
+
+    exec_addr [BINARY FILE] [ADDR]
+    
+**Modified, you need to provide file path and address**
+
+    exec <ADDR>
+
+**Modified, you need to provide FDL1 address when you execute FDL1**
