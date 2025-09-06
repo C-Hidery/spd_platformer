@@ -203,8 +203,8 @@ typedef struct {
 	uint32_t crc32_le;
 } bootloader_control;
 #pragma pack()
-DA_INFO_T Da_Info;
-partition_t gPartInfo;
+extern DA_INFO_T Da_Info;
+extern partition_t gPartInfo;
 #if USE_LIBUSB
 libusb_device **FindPort(int pid);
 void startUsbEventHandle(void);
