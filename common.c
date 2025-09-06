@@ -182,6 +182,73 @@ void print_string(FILE *f, const void *src, size_t n) {
 	fprintf(f, "\"\n");
 	
 }
+int print_to_string(char* dest, size_t dest_size, const void* src, size_t n,int o) {
+	size_t i; int a, b = 0;
+	const uint8_t* buf = (const uint8_t*)src;
+	int offset = 0; // 记录当前写入位置
+
+	// 写入开头的双引号
+	if (offset + 1 < dest_size) {
+		//dest[offset++] = '"';
+	}
+	else {
+		return -1; // 缓冲区不足
+	}
+
+	for (i = 0; i < n; i++) {
+		a = buf[i]; b = 0;
+		switch (a) {
+		case '"': case '\\': b = a; break;
+		case 0: b = '0'; break;
+		case '\b': b = 'b'; break;
+		case '\t': b = 't'; break;
+		case '\n': b = 'n'; break;
+		case '\f': b = 'f'; break;
+		case '\r': b = 'r'; break;
+		}
+
+		if (b) {
+			// 写入转义序列（如 \\、\n 等）
+			if (offset + 2 < dest_size) {
+				dest[offset++] = '\\';
+				dest[offset++] = b;
+			}
+			else {
+				return -1;
+			}
+		}
+		else if (a >= 32 && a < 127) {
+			// 直接写入可打印字符
+			if (offset + 1 < dest_size) {
+				dest[offset++] = a;
+			}
+			else {
+				return -1;
+			}
+		}
+		else {
+			// 写入十六进制转义序列（如 \x0a）
+			if (offset + 4 < dest_size) {
+				if(o) offset += snprintf(dest + offset, dest_size - offset, "\\x%02x", a);
+			}
+			else {
+				return -1;
+			}
+		}
+	}
+
+	// 写入结尾的双引号和换行符
+	if (offset + 2 < dest_size) {
+		dest[offset++] = '\n';
+		dest[offset] = '\0'; // 确保字符串以 null 结尾
+	}
+	else {
+		return -1;
+	}
+
+	return offset; // 返回写入的字符数（不包括 null 终止符）
+}
+
 int part_count_c = 0;
 #if USE_LIBUSB
 void find_endpoints(libusb_device_handle *dev_handle, int result[2]) {

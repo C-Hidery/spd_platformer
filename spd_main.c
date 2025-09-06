@@ -4,7 +4,7 @@
 //spd_dump By TomKing062
 //SPDX-License-Identifier: GPL-3.0-or-later
 //addon funcs by YC (SPRDClientCore-second-amendment)
-const char* Version = "[1.1.3.0@_250726]";
+const char* Version = "[1.1.4.0@_250726]";
 int bListenLibusb = -1;
 int gpt_failed = 1;
 int m_bOpened = 0;
@@ -16,6 +16,7 @@ int selected_ab = -1;
 uint64_t fblk_size = 0;
 const char* o_exception;
 int init_stage = -1;
+//uint32_t e_addr = 0;
 //device stage from SPRDClientCore
 enum Stages {
 	Nothing = -1,
@@ -27,6 +28,7 @@ enum Stages {
 } device_stage = Nothing, device_mode = Nothing;
 //spd_dump protocol
 char** str2;
+char mode_str[256];
 int in_quote;
 char* temp;
 char str1[(ARGC_MAX - 1) * ARGV_LEN];
@@ -75,8 +77,9 @@ void print_help() {
 		"\t->send|send_no_enddata\n"
 		"\t\tSends a file to the device without executing it. The file path and address must be specified before using this command.\n"
 		"\t\t(send_no_enddata will not send end_data command after file transfer.)\n"
-		"\t->exec\n"
-		"\t\tExecutes a sent file in the FDL1 stage. Typically used with sml or FDL2 (also known as uboot/lk).\n"
+		"\t->exec <ADDR>\n"
+		"\t\tExecutes a sent file. Typically used with sml or FDL2 (also known as uboot/lk).\n"
+		"\t\t(When you execute FDL1, you need to provide FDL1 address)"
 		"\t->path [SAVE PATH]\n"
 		"\t\tChanges the save directory for commands like r, read_part, read_spec, read_flash, and read_mem.\n"
 		"\t->nand_id [ID]\n"
@@ -152,6 +155,8 @@ void print_help() {
 		"\t\tSend [0, 0, 0, 0] packet to a specified address, then send addresses in a loop of [0, 0, 0, 0] packet to sequentially decrease by 8\n"
 		"\t->write_word\n"
 		"\t\tWrite a HEX number word to a specified address.\n"
+		"\t->read_nand\n"
+		"\t\tDetermine whether the current device is a NAND model; not all devices are supported.\n"
 		"Notice:\n"
 		"\t1.The compatibility way to get part table sometimes can not get all partitions on your device\n"
 		"\t2.Command `bootloader` : It is only supported on special FDL2 and requires trustos and sml partition files."
@@ -219,7 +224,7 @@ int main(int argc, char** argv) {
 	call_Initialize(io->handle);
 #endif
 	sprintf(fn_partlist, "partition_%lld.xml", (long long)time(NULL));
-	printf("spd_platformer version 1.2.2.0\n");
+	printf("spd_platformer version 1.3.0.0\n");
 	printf("Copyright (C) 2025 Ryan Crepa\n");
 	printf("Core by TomKing062\n");
 #if _DEBUG
@@ -429,6 +434,7 @@ int main(int argc, char** argv) {
 					device_stage = FDL1;
 					DEG_LOG(OP, "FDL1 connected."); 
 					if (!memcmp(io->raw_buf + 4, "SPRD4", 5)) fdl2_executed = -1;
+					break;
 				}
 				else {
 					device_stage = BROM;
@@ -437,6 +443,7 @@ int main(int argc, char** argv) {
 				}
 				DBG_LOG("[INFO] Device mode version: ");
 				print_string(stdout, io->raw_buf + 4, READ16_BE(io->raw_buf + 2));
+				print_to_string(mode_str,sizeof(mode_str),io->raw_buf + 4, READ16_BE(io->raw_buf + 2),0);
 				
 				encode_msg_nocpy(io, BSL_CMD_CONNECT, 0);
 				if (send_and_check(io)) exit(1);
@@ -455,9 +462,13 @@ int main(int argc, char** argv) {
 					encode_msg_nocpy(io, BSL_CMD_KEEP_CHARGE, 0);
 					if (!send_and_check(io)) DEG_LOG(OP, "Keep charge FDL1.");
 				}
+				break;
 			}
-			else { DEG_LOG(OP, "BROM connected."); device_stage = BROM; break;}
-			
+			else {
+				DEG_LOG(OP, "BROM connected.");
+				device_stage = BROM;
+				break;
+			}
 		}
 		//FDL2 response:UNSUPPORTED
 		else if (ret == BSL_REP_UNSUPPORTED_COMMAND) {
@@ -480,32 +491,36 @@ int main(int argc, char** argv) {
 		}
 		
 	}
-	if (isKickMode == 1) {
-		device_mode = SPRD4;
-	}
+	
+	if(!mode_str == "SPRD3\\0" && isKickMode) device_mode = SPRD4;
 	else device_mode = SPRD3;
 	char** save_argv = NULL;
 	if (fdl1_loaded == -1) argc += 2;
 	if (fdl2_executed == -1) argc += 1;
 	init_stage = 2;
 	ThrowExit;
-	if (device_mode == SPRD3) {
-		if (device_stage == BROM) {
+	if (fdl2_executed > 0) {
+		if (device_mode == SPRD3) {
+			DEG_LOG(I, "Device stage: FDL2/SPRD3");
+		}
+		else DEG_LOG(I, "Device stage: FDL2/SPRD4(Auto:D)");
+	}
+	else if(fdl1_loaded > 0) {
+		if (device_mode == SPRD3) {
+			DEG_LOG(I, "Device stage: FDL1/SPRD3");
+		}
+		else DEG_LOG(I, "Device stage: FDL1/SPRD4(Auto:D)");
+	}
+	else if (device_stage == BROM) {
+		if (device_mode == SPRD3) {
 			DEG_LOG(I, "Device stage: BROM/SPRD3");
 		}
-		else if (device_stage == FDL1) DEG_LOG(I, "Device stage: FDL1/SPRD3");
-		else if (device_stage == FDL2) DEG_LOG(I, "Device stage: FDL2/SPRD3");
-		else { ERR_EXIT("Failed to connect: %s, please reboot your phone by pressing POWER and VOLUME_UP for 7-10 seconds.\n", o_exception); }
+		else DEG_LOG(I, "Device stage: BROM/SPRD4(Auto:D)");
 	}
-	else if (device_mode == SPRD4) {
-		if (device_stage == BROM) {
-			DEG_LOG(I, "Device stage: BROM/SPRD3/4(AutoD)");
-		}
-		else if (device_stage == FDL1) DEG_LOG(I, "Device stage: FDL1/SPRD3/4(AutoD)");
-		else if (device_stage == FDL2) DEG_LOG(I, "Device stage: FDL2/SPRD3/4(AutoD)");
-		else {  ERR_EXIT("Failed to connect: %s, please reboot your phone by pressing POWER and VOLUME_UP for 7-10 seconds.\n",o_exception); }
+	else { 
+		if(device_mode == SPRD3) DEG_LOG(I, "Device stage: Unknown/SPRD3");
+		else DEG_LOG(I, "Device stage: Unknown/SPRD4(Auto:D)");
 	}
-	else { ThrowExit; ERR_EXIT("Failed to connect: %s, please reboot your phone by pressing POWER and VOLUME_UP for 7-10 seconds.\n", o_exception); }
 	//get in interaction 
 	
 	while (1) {
@@ -519,6 +534,7 @@ int main(int argc, char** argv) {
 			}
 			else if (fdl2_executed == -1) {
 				if (!save_argv) save_argv = argv;
+				//Auto execute FDL1 in One-line mode
 				str2[1] = "exec";
 			}
 			else {
@@ -636,6 +652,8 @@ int main(int argc, char** argv) {
 			if (argcount <= argchange) { DEG_LOG(W,"fdl FILE addr"); argc = 1; continue; }
 			//convert to ulong
 			addr = strtoul(str2[3], NULL, 0);
+			//×ª´¢
+			//e_addr = addr;
 			//IS FDL2, NO NEED
 			if (fdl2_executed > 0) {
 				DEG_LOG(W,"FDL2 is already executed, skipped.");
@@ -695,6 +713,8 @@ int main(int argc, char** argv) {
 					if (send_and_check(io)) exit(1);
 				}
 				DEG_LOG(OP,"Execute FDL1");
+				// Tiger 310(0x5500) and Tiger 616(0x65000800) need to change baudrate after FDL1
+				
 				if (addr == 0x5500 || addr == 0x65000800) {
 					highspeed = 1;
 					if (!baudrate) baudrate = 921600;
@@ -714,7 +734,7 @@ int main(int argc, char** argv) {
 				}
 				DEG_LOG(I,"Check baud FDL1 done.");
 
-				DEG_LOG(I,"Device REP_version: ");
+				DEG_LOG(I,"Device REP_Version: ");
 				print_string(stderr, io->raw_buf + 4, READ16_BE(io->raw_buf + 2));
 				if (!memcmp(io->raw_buf + 4, "SPRD4", 5)) fdl2_executed = -1;
 				//special FDL1 MEM, DISABLED FOR STABILITY
@@ -770,6 +790,7 @@ int main(int argc, char** argv) {
 		}
 		else if (!strcmp(str2[1], "exec")) {
 			//spd_dump exec command
+			
 			if (fdl2_executed > 0) {
 				DEG_LOG(W, "FDL2 is already executed, skipped.");
 				argc -= 1; argv += 1;
@@ -788,11 +809,13 @@ int main(int argc, char** argv) {
 				if (ret == BSL_REP_INCOMPATIBLE_PARTITION)
 					get_Da_Info(io);
 				else if (ret != BSL_REP_ACK) {
-				ThrowExit();
-				ERR_EXIT("%s: excepted response (0x%04x)\n",o_exception, ret);
-
-			}
-				DEG_LOG(OP,"Execute FDL2");
+					ThrowExit();
+					ERR_EXIT("%s: excepted response (0x%04x)\n", o_exception, ret);
+				}
+				DEG_LOG(OP, "Execute FDL2");
+				//remove 0d detection for nand device
+				//This is not supported on certain devices.
+				/*
 				encode_msg_nocpy(io, BSL_CMD_READ_FLASH_INFO, 0);
 				send_msg(io);
 				ret = recv_msg(io);
@@ -803,11 +826,12 @@ int main(int argc, char** argv) {
 					// need more samples to cover BSL_REP_READ_MCP_TYPE packet to nand_id/nand_info
 					// for nand_id 0x15, packet is 00 9b 00 0c 00 00 00 00 00 02 00 00 00 00 08 00
 				}
+				*/
 				if (Da_Info.bDisableHDLC) {
 					encode_msg_nocpy(io, BSL_CMD_DISABLE_TRANSCODE, 0);
 					if (!send_and_check(io)) {
 						io->flags &= ~FLAGS_TRANSCODE;
-						DEG_LOG(OP,"Try to disable transcode 0x7D.");
+						DEG_LOG(OP, "Try to disable transcode 0x7D.");
 					}
 				}
 				if (Da_Info.bSupportRawData) {
@@ -815,14 +839,14 @@ int main(int argc, char** argv) {
 					io->ptable = partition_list(io, fn_partlist, &io->part_count);
 					if (fdl2_executed) {
 						Da_Info.bSupportRawData = 0;
-						DEG_LOG(OP,"Raw data mode disabled for SPRD4.");
+						DEG_LOG(OP, "Raw data mode disabled for SPRD4.");
 					}
 					else {
 						encode_msg_nocpy(io, BSL_CMD_ENABLE_RAW_DATA, 0);
-						if (!send_and_check(io)) DEG_LOG(OP,"Raw data mode enabled.");
+						if (!send_and_check(io)) DEG_LOG(OP, "Raw data mode enabled.");
 					}
 				}
-				
+
 
 				else if (highspeed || Da_Info.dwStorageType == 0x103) {
 					blk_size = 0xf800;
@@ -831,14 +855,15 @@ int main(int argc, char** argv) {
 				else if (Da_Info.dwStorageType == 0x102) {
 					io->ptable = partition_list(io, fn_partlist, &io->part_count);
 				}
-				else if (Da_Info.dwStorageType == 0x101) DEG_LOG(I,"Device storage is nand.");
+				//removed
+				else if (Da_Info.dwStorageType == 0x101) DEG_LOG(I, "Device storage is nand.");
 				if (gpt_failed != 1) {
-					if (selected_ab == 2) DEG_LOG(I,"Device is using slot b\n");
-					else if (selected_ab == 1) DEG_LOG(I,"Device is using slot a\n");
+					if (selected_ab == 2) DEG_LOG(I, "Device is using slot b\n");
+					else if (selected_ab == 1) DEG_LOG(I, "Device is using slot a\n");
 					else {
-						DEG_LOG(I,"Device is not using VAB\n");
+						DEG_LOG(I, "Device is not using VAB\n");
 						if (Da_Info.bSupportRawData) {
-							DEG_LOG(I,"Raw data mode is supported (level is %u) ,but DISABLED for stability, you can set it manually.", (unsigned)Da_Info.bSupportRawData);
+							DEG_LOG(I, "Raw data mode is supported (level is %u) ,but DISABLED for stability, you can set it manually.", (unsigned)Da_Info.bSupportRawData);
 							Da_Info.bSupportRawData = 0;
 						}
 					}
@@ -853,8 +878,90 @@ int main(int argc, char** argv) {
 					nand_info[2] = 64 * (uint8_t)pow(2, (nand_id >> 4) & 3); //block size
 				}
 				fdl2_executed = 1;
+				argc -= 1; argv += 1;
+				
+			}else if (fdl1_loaded != 1) {
+				//Execute FDL1 manually
+				if (argcount <= 2) { DEG_LOG(W, "`exec` command need fdl addr when exec in FDL1"); argc = 1; continue; }
+				uint32_t addr = strtoul(str2[2], NULL, 0);
+				encode_msg_nocpy(io, BSL_CMD_EXEC_DATA, 0);
+				if (send_and_check(io)) exit(1);
+				DEG_LOG(OP, "Execute FDL1");
+				// Tiger 310(0x5500) and Tiger 616(0x65000800) need to change baudrate after FDL1
+				if (addr == 0x5500 || addr == 0x65000800) {
+					highspeed = 1;
+					if (!baudrate) baudrate = 921600;
+				}
+
+				/* FDL1 (chk = sum) */
+				io->flags &= ~FLAGS_CRC16;
+
+				encode_msg(io, BSL_CMD_CHECK_BAUD, NULL, 1);
+				for (i = 0; ; i++) {
+					send_msg(io);
+					recv_msg(io);
+					if (recv_type(io) == BSL_REP_VER) break;
+					DEG_LOG(W, "Failed to check baud, retry...");
+					if (i == 4) { o_exception = "Failed to check baud FDL1."; ERR_EXIT("Can not execute FDL: %s,please reboot your phone by pressing POWER and VOL_UP for 7-10 seconds.\n", o_exception); }
+					usleep(500000);
+				}
+				DEG_LOG(I, "Check baud FDL1 done.");
+
+				DEG_LOG(I, "Device REP_Version: ");
+				print_string(stderr, io->raw_buf + 4, READ16_BE(io->raw_buf + 2));
+				if (!memcmp(io->raw_buf + 4, "SPRD4", 5)) fdl2_executed = -1;
+				//special FDL1 MEM, DISABLED FOR STABILITY
+#if FDL1_DUMP_MEM
+				//read dump mem
+				int pagecount = 0;
+				char* pdump;
+				char chdump;
+				FILE* fdump;
+				fdump = my_fopen("memdump.bin", "wb");
+				encode_msg(io, BSL_CMD_CHECK_BAUD, NULL, 1);
+				while (1) {
+					send_msg(io);
+					ret = recv_msg(io);
+					if (!ret) ERR_EXIT("timeout reached\n");
+					if (recv_type(io) == BSL_CMD_READ_END) break;
+					pdump = (char*)(io->raw_buf + 4);
+					for (i = 0; i < 512; i++) {
+						chdump = *(pdump++);
+						if (chdump == 0x7d) {
+							if (*pdump == 0x5d || *pdump == 0x5e) chdump = *(pdump++) + 0x20;
+						}
+						fputc(chdump, fdump);
+					}
+					DEG_LOG(I, "dump page count %d", ++pagecount);
+				}
+				fclose(fdump);
+				DEG_LOG(I, "dump mem end");
+				//end
+#endif
+
+				encode_msg_nocpy(io, BSL_CMD_CONNECT, 0);
+				if (send_and_check(io)) exit(1);
+				DEG_LOG(I, "FDL1 connected.");
+#if !USE_LIBUSB
+				if (baudrate) {
+					uint8_t* data = io->temp_buf;
+					WRITE32_BE(data, baudrate);
+					encode_msg_nocpy(io, BSL_CMD_CHANGE_BAUD, 4);
+					if (!send_and_check(io)) {
+						DEG_LOG(OP, "Change baud FDL1 to %d", baudrate);
+						call_SetProperty(io->handle, 0, 100, (LPCVOID)&baudrate);
+					}
+				}
+#endif
+				if (keep_charge) {
+					encode_msg_nocpy(io, BSL_CMD_KEEP_CHARGE, 0);
+					if (!send_and_check(io)) DEG_LOG(OP, "Keep charge FDL1.");
+				}
+				fdl1_loaded = 1;
+				argc -= 2; argv += 2;
 			}
-			argc -= 1; argv += 1;
+				
+			
 #if !USE_LIBUSB
 		}
 		else if (!strcmp(str2[1], "baudrate")) {
@@ -1193,6 +1300,21 @@ int main(int argc, char** argv) {
 			erase_partition(io, "all");
 			argc -= 1; argv += 1;
 
+		}
+		else if (!strcmp(str2[1], "read_nand")) {
+			encode_msg_nocpy(io, BSL_CMD_READ_FLASH_INFO, 0);
+			send_msg(io);
+			ret = recv_msg(io);
+    		if (ret) {
+				ret = recv_type(io);
+				if (ret != BSL_REP_READ_FLASH_INFO) DEG_LOG(E,"excepted response (0x%04x)\n", ret);
+				else Da_Info.dwStorageType = 0x101;
+				// need more samples to cover BSL_REP_READ_MCP_TYPE packet to nand_id/nand_info
+				// for nand_id 0x15, packet is 00 9b 00 0c 00 00 00 00 00 02 00 00 00 00 08 00
+			}
+			if (Da_Info.dwStorageType = 0x101) DEG_LOG(I, "Device storage is nand");
+			else DEG_LOG(I, "Device storage is not nand");
+			argc -= 1; argv += 1;
 		}
 		else if (!strcmp(str2[1], "w") || !strcmp(str2[1],"flash")) {
 			const char* fn; FILE* fi;

@@ -66,7 +66,7 @@ enum {
 	BSL_CMD_ERASE_FLASH = 0x0A, /* Erase an area of flash */
 	BSL_CMD_REPARTITION = 0x0B, /* Repartition nand flash */
 	BSL_CMD_READ_FLASH_TYPE = 0x0C, /* Read flash type */ // customer
-	BSL_CMD_READ_FLASH_INFO = 0x0D, /* Read flash infomation */
+	BSL_CMD_READ_FLASH_INFO = 0x0D, /* Read flash infomation, this is not supported on certain devices */
 	BSL_CMD_READ_SECTOR_SIZE = 0x0F, /* Read Nor flash sector size */
 	BSL_CMD_READ_START = 0x10, /* Read flash start */
 	BSL_CMD_READ_MIDST = 0x11, /* Read flash midst */
