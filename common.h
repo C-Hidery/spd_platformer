@@ -271,3 +271,6 @@ partition_t* partition_list_d(spdio_t* io, const char* fn);
 int set_bootloader_status(spdio_t* io,int status);
 void add_partition(spdio_t* io, const char* name, long long size);
 int print_to_string(char* dest, size_t dest_size, const void* src, size_t n,int o);
+//void send_buf_1(spdio_t* io,
+//	uint32_t start_addr, int end_data,
+//	unsigned step, uint8_t* mem, unsigned size);

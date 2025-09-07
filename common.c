@@ -841,7 +841,73 @@ void send_buf(spdio_t *io,
 		send_and_check(io);
 	}
 }
+/*
+void send_buf_1(spdio_t* io,
+	uint32_t start_addr, int end_data,
+	unsigned step, uint8_t* mem, unsigned size) {
 
+	static unsigned long long start_time = 0;
+	static uint64_t total_sent = 0;
+	static uint64_t total_size = 0;
+
+	// 如果是新的传输任务，重置计时器和计数器
+	if (start_time == 0) {
+		start_time = GetTickCount64();
+		total_sent = 0;
+		total_size = size;
+	}
+
+	uint32_t i, n;
+	uint32_t* data = (uint32_t*)io->temp_buf;
+	WRITE32_BE(data, start_addr);
+	WRITE32_BE(data + 1, size);
+
+	encode_msg_nocpy(io, BSL_CMD_START_DATA, 4 * 2);
+	if (send_and_check(io)) {
+		// 出错时显示当前进度
+		print_progress_bar(total_sent, total_size, start_time);
+		printf("\n"); // 换行
+		start_time = 0; // 重置以便下次使用
+		return;
+	}
+
+	for (i = 0; i < size; i += n) {
+		n = size - i;
+		if (n > step) n = step;
+
+		encode_msg(io, BSL_CMD_MIDST_DATA, mem + i, n);
+		if (send_and_check(io)) {
+			// 出错时显示当前进度
+			print_progress_bar(total_sent, total_size, start_time);
+			printf("\n"); // 换行
+			start_time = 0; // 重置以便下次使用
+			return;
+		}
+
+		// 更新已发送字节数并显示进度
+		total_sent += n;
+		print_progress_bar(total_sent, total_size, start_time);
+	}
+
+	if (end_data) {
+		encode_msg_nocpy(io, BSL_CMD_END_DATA, 0);
+		if (send_and_check(io)) {
+			// 出错时显示当前进度
+			print_progress_bar(total_sent, total_size, start_time);
+			printf("\n"); // 换行
+			start_time = 0; // 重置以便下次使用
+			return;
+		}
+	}
+
+	// 完成传输，显示100%进度
+	print_progress_bar(total_size, total_size, start_time);
+	printf("\n"); // 完成换行
+
+	// 重置静态变量以便下次使用
+	start_time = 0;
+}
+*/
 size_t send_file(spdio_t *io, const char *fn,
 	uint32_t start_addr, int end_data, unsigned step,
 	unsigned src_offs, unsigned src_size) {

@@ -492,7 +492,7 @@ int main(int argc, char** argv) {
 		
 	}
 	
-	if(!mode_str == "SPRD3\\0" && isKickMode) device_mode = SPRD4;
+	if(strcmp(mode_str,"SPRD3") && isKickMode) device_mode = SPRD4;
 	else device_mode = SPRD3;
 	char** save_argv = NULL;
 	if (fdl1_loaded == -1) argc += 2;
