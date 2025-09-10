@@ -53,3 +53,7 @@ termux-usb -e './spd_platformer --usb-fd' /dev/bus/usb/xxx/xxx
     exec <ADDR>
 
 **Modified, you need to provide FDL1 address when you execute FDL1**
+
+    read_spec [PART NAME] [SIZE] [OFFSET]
+
+**Modified, equivalent to the `read_part` command, then `read_part` is equivalent to the `r`**
