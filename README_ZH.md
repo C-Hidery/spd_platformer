@@ -53,3 +53,6 @@ termux-usb -e './spd_platformer --usb-fd' /dev/bus/usb/xxx/xxx
 
 **你需要在执行FDL1时提供FDL1的地址**
 
+   read_spec [分区名] [大小] [偏移]
+
+**等同于`read_part`命令，之后`read_part`等同于`r`**
