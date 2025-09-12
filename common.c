@@ -926,7 +926,11 @@ size_t send_file(spdio_t *io, const char *fn,
 	DEG_LOG(OP,"Sent %s to 0x%x", fn, start_addr);
 	return size;
 }
-
+int GetStage(int mode) {	
+	if (fdl2_executed > 0) return FDL2;
+	else if (fdl1_loaded > 0) return FDL1;
+	else return BROM;
+}
 FILE *my_fopen(const char *fn, const char *mode) {
 	if (savepath[0]) {
 		char fix_fn[1024];
@@ -1932,7 +1936,7 @@ uint64_t check_partition(spdio_t *io, const char *name, int need_size) {
 		}
 	}
 	if (end == 10) Da_Info.dwStorageType = 0x101;
-	DEG_LOG(I,"Select partition: %s, offset: 0x%llx", name, offset);
+	DEG_LOG(I,"Partition check: %s, size : 0x%llx", name, offset);
 	encode_msg_nocpy(io, BSL_CMD_READ_END, 0);
 	send_and_check(io);
 	return offset;

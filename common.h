@@ -227,6 +227,14 @@ enum msg_type{
 	OP = 4,
 	DE = 5
 };
+enum Stages {
+	Nothing = -1,
+	BROM = 0,
+	FDL1 = 1,
+	FDL2 = 2,
+	SPRD3 = 3,
+	SPRD4 = 4
+};
 spdio_t *spdio_init(int flags);
 void spdio_free(spdio_t *io);
 extern const char* CommonPartitions[];
@@ -274,3 +282,4 @@ int print_to_string(char* dest, size_t dest_size, const void* src, size_t n,int 
 //void send_buf_1(spdio_t* io,
 //	uint32_t start_addr, int end_data,
 //	unsigned step, uint8_t* mem, unsigned size);
+int GetStage(int mode);

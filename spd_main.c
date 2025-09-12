@@ -4,7 +4,7 @@
 //spd_dump By TomKing062
 //SPDX-License-Identifier: GPL-3.0-or-later
 //addon funcs by YC (SPRDClientCore-second-amendment)
-const char* Version = "[1.1.4.0@_250726]";
+const char* Version = "[1.1.4.1@_250726]";
 int bListenLibusb = -1;
 int gpt_failed = 1;
 int m_bOpened = 0;
@@ -18,14 +18,7 @@ const char* o_exception;
 int init_stage = -1;
 //uint32_t e_addr = 0;
 //device stage from SPRDClientCore
-enum Stages {
-	Nothing = -1,
-	BROM = 0,
-	FDL1 = 1,
-	FDL2 = 2,
-	SPRD3 = 3,
-	SPRD4 = 4
-} device_stage = Nothing, device_mode = Nothing;
+int device_stage = Nothing, device_mode = Nothing;
 //spd_dump protocol
 char** str2;
 char mode_str[256];
@@ -37,9 +30,9 @@ void print_help() {
 	//TODO
 	DBG_LOG("spd_platformer usage:\n"
 	"\nOne-line mode example:\n"
-	"\tspd_platformer --wait 300 fdl path/to/fdl fdl path/to/fdl exec read_part boot write_part boot boot.img reset\n"
+	"\tspd_main|spd_platformer --wait 300 fdl path/to/fdl 0x0000 fdl path/to/fdl 0x0000 exec read_part boot write_part boot boot.img reset\n"
 	"\nInteractive mode example:\n"
-	"\tspd_platformer --wait 300 fdl path/to/fdl fdl path/to/fdl exec\n"
+	"\tspd_main|spd_platformer --wait 300 fdl path/to/fdl 0x0000 fdl path/to/fdl 0x0000 exec\n"
 	"\nOptions\n"
 	"\t--wait [TIME(second)]\n"
 	"\t\tSpecifies the time to wait for the device to connect.\n"
@@ -224,7 +217,7 @@ int main(int argc, char** argv) {
 	call_Initialize(io->handle);
 #endif
 	sprintf(fn_partlist, "partition_%lld.xml", (long long)time(NULL));
-	printf("spd_platformer version 1.3.0.0\n");
+	printf("spd_platformer version 1.4.0.1\n");
 	printf("Copyright (C) 2025 Ryan Crepa\n");
 	printf("Core by TomKing062\n");
 #if _DEBUG
@@ -491,8 +484,19 @@ int main(int argc, char** argv) {
 		}
 		
 	}
-	
-	if(strcmp(mode_str,"SPRD3") && isKickMode) device_mode = SPRD4;
+	size_t sub_len = strlen("SPRD3");
+	size_t str_len = strlen(mode_str);
+	int found = 0;
+	if (str_len >= sub_len) {
+		for (size_t i = 0; i <= str_len - sub_len; i++) {
+			if (strncmp(mode_str + i, "SPRD3", sub_len) == 0) {
+				found = 1;
+				break;
+			}
+		}
+	}
+	DEG_LOG(I,"SPRD3 Current : %d",found);
+	if(!found && isKickMode) device_mode = SPRD4;
 	else device_mode = SPRD3;
 	char** save_argv = NULL;
 	if (fdl1_loaded == -1) argc += 2;
