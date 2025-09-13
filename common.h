@@ -283,3 +283,4 @@ int print_to_string(char* dest, size_t dest_size, const void* src, size_t n,int 
 //	uint32_t start_addr, int end_data,
 //	unsigned step, uint8_t* mem, unsigned size);
 int GetStage(int mode);
+double get_time();

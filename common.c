@@ -1090,7 +1090,7 @@ uint64_t dump_partition(spdio_t *io,
 	uint32_t n, nread, t32; uint64_t offset, n64, saved_size = 0;
 	int ret, mode64 = (start + len) >> 32;
 	char name_tmp[36];
-	clock_t rtime = clock();
+	double rtime = get_time();
 	if (!strcmp(name, "super")) dump_partition(io, "metadata", 0, check_partition(io, "metadata", 1), "metadata.bin", step);
 	else if (!strncmp(name, "userdata", 8)) { if (!check_confirm("read userdata")) return 0; }
 	else if (strstr(name, "nv1")) {
@@ -1145,13 +1145,13 @@ uint64_t dump_partition(spdio_t *io,
 			if (saved_size >= fblk_size) { usleep(1000000); saved_size = 0; }
 		}
 	}
-	clock_t etime = clock();
-	double time_spent = (double)(etime - rtime) / CLOCKS_PER_SEC;
-	DEG_LOG(I,"Cost time %.4f seconds",time_spent);
+	double etime = get_time();
+	double time_spent = etime - rtime;
+	DEG_LOG(I,"Cost time %.6f seconds",time_spent);
 	DEG_LOG(I,"\nRead partition %s(+0x%llx) successfully, target: 0x%llx, read: 0x%llx",
 		name, (long long)start, (long long)len,
 		(long long)(offset - start));
-	fclose(fo);
+	fclose(fo);	
 
 	encode_msg_nocpy(io, BSL_CMD_READ_END, 0);
 	send_and_check(io);
@@ -1520,7 +1520,7 @@ void repartition(spdio_t *io, const char *fn) {
 }
 
 void erase_partition(spdio_t *io, const char *name) {
-	clock_t rtime = clock();
+	double rtime = get_time();
 	int timeout0 = io->timeout;
 	char name0[36];
 	if (!strcmp(name, "userdata")) {
@@ -1544,9 +1544,9 @@ void erase_partition(spdio_t *io, const char *name) {
 		strcpy(name0, name);
 	}
 	if (!send_and_check(io)) {
-		clock_t etime = clock();
-		double time_spent = (double)(etime - rtime) / CLOCKS_PER_SEC;
-		DEG_LOG(I, "Cost time %.4f seconds", time_spent);
+		double etime = get_time();
+		double time_spent = etime - rtime;
+		DEG_LOG(I, "Cost time %.6f seconds", time_spent);
 		DEG_LOG(I, "Erase partition %s successfully", name0); 
 	}
 	io->timeout = timeout0;
@@ -1557,7 +1557,7 @@ void load_partition(spdio_t *io, const char *name,
 	uint64_t offset, len, n64;
 	unsigned mode64, n, step0 = step; int ret;
 	FILE *fi;
-	clock_t rtime = clock();
+	double rtime = get_time();
 	if (strstr(name, "runtimenv")) { erase_partition(io, name); return; }
 	if (!strcmp(name, "calinv")) { return; } //skip calinv
 
@@ -1654,9 +1654,9 @@ fallback_load:
 	fclose(fi);
 	encode_msg_nocpy(io, BSL_CMD_END_DATA, 0);
 	if (!send_and_check(io)) {
-		clock_t etime = clock();
-		double time_spent = (double)(etime - rtime) / CLOCKS_PER_SEC;
-		DEG_LOG(I, "Cost time %.4f seconds", time_spent);
+		double etime = get_time();
+		double time_spent = etime - rtime;
+		DEG_LOG(I, "Cost time %.6f seconds", time_spent);
 		DEG_LOG(I, "\nWrite partition %s successfully, target: 0x%llx, written: 0x%llx",
 			name, (long long)len, (long long)offset);
 	}
@@ -1665,7 +1665,7 @@ fallback_load:
 void load_partition_force(spdio_t *io, const int id, const char *fn, unsigned step) {
 	int i, j; char a;
 	uint8_t *buf = io->temp_buf;
-	clock_t rtime = clock();
+	double rtime = get_time();
 	char name[] = "w_force";
 	for (i = 0; i < io->part_count; i++) {
 		memset(buf, 0, 36 * 2);
@@ -1695,9 +1695,9 @@ void load_partition_force(spdio_t *io, const int id, const char *fn, unsigned st
 	}
 	encode_msg_nocpy(io, BSL_CMD_REPARTITION, io->part_count * 0x4c);
 	if (!send_and_check(io)) { 
-		clock_t etime = clock();
-		double time_spent = (double)(etime - rtime) / CLOCKS_PER_SEC;
-		DEG_LOG(I, "Cost time %.4f seconds", time_spent);
+		double etime = get_time();
+		double time_spent = etime - rtime;
+		DEG_LOG(I, "Cost time %.6f seconds", time_spent);
 		DEG_LOG(I, "Force write %s successfully", (*(io->ptable + id)).name); 
 	}
 
@@ -1746,7 +1746,7 @@ unsigned short crc16(unsigned short crc, unsigned char const *buffer, unsigned i
 
 void load_nv_partition(spdio_t *io, const char *name,
 	const char *fn, unsigned step) {
-	clock_t rtime = clock;
+	double rtime = get_time();
 	size_t offset, rsz;
 	unsigned n; int ret;
 	size_t len = 0;
@@ -1810,12 +1810,37 @@ void load_nv_partition(spdio_t *io, const char *name,
 	free(mem0);
 	encode_msg_nocpy(io, BSL_CMD_END_DATA, 0);
 	if (!send_and_check(io)) {
-		clock_t etime = clock;
-		double t = (double)(etime - rtime) / CLOCKS_PER_SEC;
-		DEG_LOG(I,"Cost time %.4f seconds",t);
+		double etime = get_time();
+		double t = etime - rtime;
+		DEG_LOG(I,"Cost time %.6f seconds",t);
 		DEG_LOG(I, "Write NV partition %s successfully, target: 0x%llx, written: 0x%llx\n",
 			name, (long long)len, (long long)offset);
 	}
+}
+double get_time() {
+#if defined(_WIN32) || defined(_WIN64)
+	// Windows 实现
+	static LARGE_INTEGER frequency;
+	static int initialized = 0;
+	if (!initialized) {
+		QueryPerformanceFrequency(&frequency);
+		initialized = 1;
+	}
+
+	LARGE_INTEGER counter;
+	QueryPerformanceCounter(&counter);
+	return (double)counter.QuadPart / frequency.QuadPart;
+#else
+	// Unix-like 系统实现
+	struct timespec ts;
+#ifdef CLOCK_MONOTONIC
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+#else
+	// 备用方案：使用较低精度的 clock()
+	return (double)clock() / CLOCKS_PER_SEC;
+#endif
+	return (double)ts.tv_sec + (double)ts.tv_nsec / 1e9;
+#endif
 }
 
 void find_partition_size_new(spdio_t *io, const char *name, unsigned long long *offset_ptr) {

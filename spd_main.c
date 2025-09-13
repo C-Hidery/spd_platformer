@@ -4,7 +4,7 @@
 //spd_dump By TomKing062
 //SPDX-License-Identifier: GPL-3.0-or-later
 //addon funcs by YC (SPRDClientCore-second-amendment)
-const char* Version = "[1.1.4.1@_250726]";
+const char* Version = "[1.1.4.2@_250726]";
 int bListenLibusb = -1;
 int gpt_failed = 1;
 int m_bOpened = 0;
@@ -217,7 +217,7 @@ int main(int argc, char** argv) {
 	call_Initialize(io->handle);
 #endif
 	sprintf(fn_partlist, "partition_%lld.xml", (long long)time(NULL));
-	printf("spd_platformer version 1.4.0.2\n");
+	printf("spd_platformer version 1.4.1.0\n");
 	printf("Copyright (C) 2025 Ryan Crepa\n");
 	printf("Core by TomKing062\n");
 #if _DEBUG
