@@ -760,7 +760,7 @@ int recv_msg(spdio_t *io) {
 			else break;
 		}
 		if (recv_type(io) != BSL_REP_LOG) break;
-		DEG_LOG(I,"BSL_REP_LOG: ");
+		DEG_LOG(I,"Response(BSL_REP_LOG): ");
 		print_string(stderr, io->raw_buf + 4, READ16_BE(io->raw_buf + 2));
 	}
 	return ret;
@@ -1064,6 +1064,7 @@ unsigned long long GetTickCount64() {
 void print_progress_bar(uint64_t done, uint64_t total, unsigned long long time0) {
 	static int completed0 = 0;
 	static uint64_t done0 = 0;
+	
 	unsigned long long time = GetTickCount64();
 	if (completed0 == PROGRESS_BAR_WIDTH) { completed0 = 0; done0 = 0; }
 	int completed = (int)(PROGRESS_BAR_WIDTH * done / (double)total);
@@ -1089,7 +1090,7 @@ uint64_t dump_partition(spdio_t *io,
 	uint32_t n, nread, t32; uint64_t offset, n64, saved_size = 0;
 	int ret, mode64 = (start + len) >> 32;
 	char name_tmp[36];
-
+	clock_t rtime = clock();
 	if (!strcmp(name, "super")) dump_partition(io, "metadata", 0, check_partition(io, "metadata", 1), "metadata.bin", step);
 	else if (!strncmp(name, "userdata", 8)) { if (!check_confirm("read userdata")) return 0; }
 	else if (strstr(name, "nv1")) {
@@ -1144,6 +1145,9 @@ uint64_t dump_partition(spdio_t *io,
 			if (saved_size >= fblk_size) { usleep(1000000); saved_size = 0; }
 		}
 	}
+	clock_t etime = clock();
+	double time_spent = (double)(etime - rtime) / CLOCKS_PER_SEC;
+	DEG_LOG(I,"Cost time %.4f seconds",time_spent);
 	DEG_LOG(I,"\nRead partition %s(+0x%llx) successfully, target: 0x%llx, read: 0x%llx",
 		name, (long long)start, (long long)len,
 		(long long)(offset - start));
@@ -1516,6 +1520,7 @@ void repartition(spdio_t *io, const char *fn) {
 }
 
 void erase_partition(spdio_t *io, const char *name) {
+	clock_t rtime = clock();
 	int timeout0 = io->timeout;
 	char name0[36];
 	if (!strcmp(name, "userdata")) {
@@ -1538,7 +1543,12 @@ void erase_partition(spdio_t *io, const char *name) {
 		select_partition(io, name, 0, 0, BSL_CMD_ERASE_FLASH);
 		strcpy(name0, name);
 	}
-	if (!send_and_check(io)) DEG_LOG(I,"Erase partition %s successfully", name0);
+	if (!send_and_check(io)) {
+		clock_t etime = clock();
+		double time_spent = (double)(etime - rtime) / CLOCKS_PER_SEC;
+		DEG_LOG(I, "Cost time %.4f seconds", time_spent);
+		DEG_LOG(I, "Erase partition %s successfully", name0); 
+	}
 	io->timeout = timeout0;
 }
 
@@ -1547,7 +1557,7 @@ void load_partition(spdio_t *io, const char *name,
 	uint64_t offset, len, n64;
 	unsigned mode64, n, step0 = step; int ret;
 	FILE *fi;
-
+	clock_t rtime = clock();
 	if (strstr(name, "runtimenv")) { erase_partition(io, name); return; }
 	if (!strcmp(name, "calinv")) { return; } //skip calinv
 
@@ -1643,13 +1653,19 @@ fallback_load:
 #endif
 	fclose(fi);
 	encode_msg_nocpy(io, BSL_CMD_END_DATA, 0);
-	if (!send_and_check(io)) DEG_LOG(I,"\nWrite partition %s successfully, target: 0x%llx, written: 0x%llx",
-		name, (long long)len, (long long)offset);
+	if (!send_and_check(io)) {
+		clock_t etime = clock();
+		double time_spent = (double)(etime - rtime) / CLOCKS_PER_SEC;
+		DEG_LOG(I, "Cost time %.4f seconds", time_spent);
+		DEG_LOG(I, "\nWrite partition %s successfully, target: 0x%llx, written: 0x%llx",
+			name, (long long)len, (long long)offset);
+	}
 }
 
 void load_partition_force(spdio_t *io, const int id, const char *fn, unsigned step) {
 	int i, j; char a;
 	uint8_t *buf = io->temp_buf;
+	clock_t rtime = clock();
 	char name[] = "w_force";
 	for (i = 0; i < io->part_count; i++) {
 		memset(buf, 0, 36 * 2);
@@ -1678,7 +1694,13 @@ void load_partition_force(spdio_t *io, const int id, const char *fn, unsigned st
 		buf += 0x4c;
 	}
 	encode_msg_nocpy(io, BSL_CMD_REPARTITION, io->part_count * 0x4c);
-	if (!send_and_check(io)) DEG_LOG(I,"Force write %s successfully", (*(io->ptable + id)).name);
+	if (!send_and_check(io)) { 
+		clock_t etime = clock();
+		double time_spent = (double)(etime - rtime) / CLOCKS_PER_SEC;
+		DEG_LOG(I, "Cost time %.4f seconds", time_spent);
+		DEG_LOG(I, "Force write %s successfully", (*(io->ptable + id)).name); 
+	}
+
 }
 
 unsigned short const crc16_table[256] = {
@@ -1724,6 +1746,7 @@ unsigned short crc16(unsigned short crc, unsigned char const *buffer, unsigned i
 
 void load_nv_partition(spdio_t *io, const char *name,
 	const char *fn, unsigned step) {
+	clock_t rtime = clock;
 	size_t offset, rsz;
 	unsigned n; int ret;
 	size_t len = 0;
@@ -1786,8 +1809,13 @@ void load_nv_partition(spdio_t *io, const char *name,
 	}
 	free(mem0);
 	encode_msg_nocpy(io, BSL_CMD_END_DATA, 0);
-	if (!send_and_check(io)) DEG_LOG(I,"Write NV partition %s successfully, target: 0x%llx, written: 0x%llx\n",
-		name, (long long)len, (long long)offset);
+	if (!send_and_check(io)) {
+		clock_t etime = clock;
+		double t = (double)(etime - rtime) / CLOCKS_PER_SEC;
+		DEG_LOG(I,"Cost time %.4f seconds",t);
+		DEG_LOG(I, "Write NV partition %s successfully, target: 0x%llx, written: 0x%llx\n",
+			name, (long long)len, (long long)offset);
+	}
 }
 
 void find_partition_size_new(spdio_t *io, const char *name, unsigned long long *offset_ptr) {
