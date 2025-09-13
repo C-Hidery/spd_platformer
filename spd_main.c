@@ -67,6 +67,8 @@ void print_help() {
 		"\t\tUsed for CVE-2022-38694.\n"
 		"\t->fdl [FILE PATH] [ADDR]\n"
 		"\t\tSend a file (splloader, FDL1, FDL2, sml, trustos, teecfg) to the specified memory address.\n"
+		"\t->loadfdl [FILE_ADDR(addr_in_name)]\n"
+		"\t\tLoad FDL file to the address encoded in filename.\n"
 		"\t->send|send_no_enddata\n"
 		"\t\tSends a file to the device without executing it. The file path and address must be specified before using this command.\n"
 		"\t\t(send_no_enddata will not send end_data command after file transfer.)\n"
@@ -217,7 +219,7 @@ int main(int argc, char** argv) {
 	call_Initialize(io->handle);
 #endif
 	sprintf(fn_partlist, "partition_%lld.xml", (long long)time(NULL));
-	printf("spd_platformer version 1.4.1.0\n");
+	printf("spd_platformer version 1.4.2.0\n");
 	printf("Copyright (C) 2025 Ryan Crepa\n");
 	printf("Core by TomKing062\n");
 #if _DEBUG
@@ -648,14 +650,39 @@ int main(int argc, char** argv) {
 			else send_file(io, fn, addr, 0, 528, 0, 0);
 			argc -= 3; argv += 3;
 		}
-		else if (!strncmp(str2[1], "fdl",3)) {
-			//remove loadfdl func and add exception detection
+		else if (!strncmp(str2[1], "fdl",3) || !strncmp(str2[1], "loadfdl", 7)) {
+			int addr_in_name = !strncmp(str2[1], "loadfdl", 7);
 			const char* fn; uint32_t addr = 0; FILE* fi;
-			int argchange = 3;
+			int argchange;
 			fn = str2[2];
-			if (argcount <= argchange) { DEG_LOG(W,"fdl FILE addr"); argc = 1; continue; }
-			//convert to ulong
-			addr = strtoul(str2[3], NULL, 0);
+			if (addr_in_name) {
+				argchange = 2;
+				if (argcount <= argchange) { DBG_LOG(W,"loadfdl FILE\n"); argc = 1; continue; }
+				char* pos = NULL, * last_pos = NULL;
+
+				pos = strstr(fn, "0X");
+				while (pos) {
+					last_pos = pos;
+					pos = strstr(pos + 2, "0X");
+				}
+				if (last_pos == NULL) {
+					pos = strstr(fn, "0x");
+					while (pos) {
+						last_pos = pos;
+						pos = strstr(pos + 2, "0x");
+					}
+				}
+				if (last_pos) addr = strtoul(last_pos, NULL, 16);
+				else { DEG_LOG(E,"\"0x\" not found in name.\n"); argc -= argchange; argv += argchange; continue; }
+			}
+			else{
+				argchange = 3;
+				if (argcount <= argchange) { DEG_LOG(W, "fdl FILE addr"); argc = 1; continue; }
+				//convert to ulong
+				addr = strtoul(str2[3], NULL, 0);
+			}
+			
+			
 			//×ª´¢
 			//e_addr = addr;
 			//IS FDL2, NO NEED
