@@ -1147,10 +1147,11 @@ uint64_t dump_partition(spdio_t *io,
 	}
 	double etime = get_time();
 	double time_spent = etime - rtime;
-	DEG_LOG(I,"Cost time %.6f seconds",time_spent);
-	DEG_LOG(I,"\nRead partition %s(+0x%llx) successfully, target: 0x%llx, read: 0x%llx",
+	
+	DEG_LOG(I,"Read partition %s(+0x%llx) successfully, target: 0x%llx, read: 0x%llx",
 		name, (long long)start, (long long)len,
 		(long long)(offset - start));
+	DEG_LOG(I, "Cost time %.6f seconds", time_spent);
 	fclose(fo);	
 
 	encode_msg_nocpy(io, BSL_CMD_READ_END, 0);
@@ -1453,7 +1454,7 @@ partition_t* partition_list_d(spdio_t* io, const char* fn) {
 	DEG_LOG(OP, "Reading partition table through compatibility method.");
 	if (selected_ab < 0) select_ab(io);
 	int verbose = io->verbose;
-	io->verbose = 0;
+	io->verbose = -1;
 	DBG_LOG("  0 %36s  256KB\n", "splloader");
 	for (i = 0; i < CommonPartitionsCount && n < 128; ++i) {
 		const char* part = CommonPartitions[i];
@@ -1546,8 +1547,9 @@ void erase_partition(spdio_t *io, const char *name) {
 	if (!send_and_check(io)) {
 		double etime = get_time();
 		double time_spent = etime - rtime;
-		DEG_LOG(I, "Cost time %.6f seconds", time_spent);
+		
 		DEG_LOG(I, "Erase partition %s successfully", name0); 
+		DEG_LOG(I, "Cost time %.6f seconds", time_spent);
 	}
 	io->timeout = timeout0;
 }
@@ -1656,9 +1658,10 @@ fallback_load:
 	if (!send_and_check(io)) {
 		double etime = get_time();
 		double time_spent = etime - rtime;
-		DEG_LOG(I, "Cost time %.6f seconds", time_spent);
-		DEG_LOG(I, "\nWrite partition %s successfully, target: 0x%llx, written: 0x%llx",
+		
+		DEG_LOG(I, "Write partition %s successfully, target: 0x%llx, written: 0x%llx",
 			name, (long long)len, (long long)offset);
+		DEG_LOG(I, "Cost time %.6f seconds", time_spent);
 	}
 }
 
@@ -1697,8 +1700,9 @@ void load_partition_force(spdio_t *io, const int id, const char *fn, unsigned st
 	if (!send_and_check(io)) { 
 		double etime = get_time();
 		double time_spent = etime - rtime;
-		DEG_LOG(I, "Cost time %.6f seconds", time_spent);
+		
 		DEG_LOG(I, "Force write %s successfully", (*(io->ptable + id)).name); 
+		DEG_LOG(I, "Cost time %.6f seconds", time_spent);
 	}
 
 }
@@ -1812,9 +1816,10 @@ void load_nv_partition(spdio_t *io, const char *name,
 	if (!send_and_check(io)) {
 		double etime = get_time();
 		double t = etime - rtime;
-		DEG_LOG(I,"Cost time %.6f seconds",t);
+		
 		DEG_LOG(I, "Write NV partition %s successfully, target: 0x%llx, written: 0x%llx\n",
 			name, (long long)len, (long long)offset);
+		DEG_LOG(I, "Cost time %.6f seconds", t);
 	}
 }
 double get_time() {
@@ -1989,7 +1994,7 @@ uint64_t check_partition(spdio_t *io, const char *name, int need_size) {
 		}
 	}
 	if (end == 10) Da_Info.dwStorageType = 0x101;
-	DEG_LOG(I,"Partition check: %s, size : 0x%llx", name, offset);
+	if(io->verbose != -1) DEG_LOG(I,"Partition check: %s, size : 0x%llx", name, offset);
 	encode_msg_nocpy(io, BSL_CMD_READ_END, 0);
 	send_and_check(io);
 	return offset;
