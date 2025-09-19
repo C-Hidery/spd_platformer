@@ -1,7 +1,7 @@
 
-# 编译器设置
-CC = gcc
+LIBUSB = 1
 CFLAGS = -O2 -Wall -Wextra -std=c99 -pedantic -Wno-unused
+CFLAGS += -DUSE_LIBUSB=$(LIBUSB)
 LIBS = -lm -lpthread
 APPNAME = spd_platformer
 
@@ -36,17 +36,8 @@ ifeq ($(LIBUSB), 1)
     endif
 endif
 
-# 目标文件
-SRCS = spd_main.c common.c
-OBJS = $(SRCS:.c=.o)
 
-# 默认目标
-all: $(APPNAME)
 
-# 链接目标程序
-$(APPNAME): $(OBJS)
+
+$(APPNAME): spd_main.c common.c
 	$(CC) -s $(CFLAGS) -o $@ $^ $(LIBS)
-
-# 编译源文件
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@

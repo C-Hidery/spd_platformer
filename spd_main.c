@@ -657,7 +657,7 @@ int main(int argc, char** argv) {
 			fn = str2[2];
 			if (addr_in_name) {
 				argchange = 2;
-				if (argcount <= argchange) { DBG_LOG(W,"loadfdl FILE\n"); argc = 1; continue; }
+				if (argcount <= argchange) { DEG_LOG(W,"loadfdl FILE\n"); argc = 1; continue; }
 				char* pos = NULL, * last_pos = NULL;
 
 				pos = strstr(fn, "0X");
